@@ -10,7 +10,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import { runQuery } from './src/db/dbService';
+import { ApiService } from '../services';
 
 const App = () => {
   const [isLoading, setLoading] = useState(false);
@@ -22,25 +22,30 @@ const App = () => {
     setLoading(true);
     setData([]);
     setColumns([]);
+
     try {
-      const myQuery = "SELECT * FROM User_Master";
+      console.log("📡 Calling API: getCanteenMaster()...");
+      const response = await ApiService.getCanteenMaster();
 
-      console.log("Starting direct DB connection process...");
-      const resultData = await runQuery(myQuery);
+      console.log("📦 API Response:", response);
 
-      console.log("Data received:", resultData);
+      if (response.success) {
+        const finalData = response.data;
 
-      const finalData = resultData.recordset || resultData;
+        if (finalData && finalData.length > 0) {
+          // Extract column names from the first row
+          const columnNames = Object.keys(finalData[0]);
+          setColumns(columnNames);
+        }
 
-      if (finalData && finalData.length > 0) {
-        // Extract column names from the first row
-        const columnNames = Object.keys(finalData[0]);
-        setColumns(columnNames);
+        setData(finalData);
+        console.log(`✅ Successfully fetched ${response.count} records`);
+      } else {
+        Alert.alert("API Error", response.error || "Failed to fetch data from API.");
       }
-
-      setData(finalData);
     } catch (error) {
-      Alert.alert("DB Error", error.message || "Failed to connect or query.");
+      console.error("❌ Unexpected error:", error);
+      Alert.alert("Connection Error", error.message || "Failed to connect to database.");
     } finally {
       setLoading(false);
     }
